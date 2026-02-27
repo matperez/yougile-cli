@@ -62,6 +62,85 @@ func NewChatsListCmd(resolvePath func() (string, error), outputJSON func() bool)
 	return c
 }
 
+// NewChatsCreateCmd returns the "chats create" command.
+func NewChatsCreateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title string
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create a group chat",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if title == "" {
+				return fmt.Errorf("title is required (--title)")
+			}
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			body := client.GroupChatControllerCreateJSONRequestBody{
+				Title:         title,
+				RoleConfigMap: map[string]interface{}{},
+				UserRoleMap:   map[string]interface{}{},
+				Users:         map[string]interface{}{},
+			}
+			resp, err := api.GroupChatControllerCreateWithResponse(context.Background(), body)
+			if err != nil {
+				return fmt.Errorf("create chat: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 201 {
+				return fmt.Errorf("create chat: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON201 != nil {
+				return output.PrintJSON(out, resp.JSON201)
+			}
+			if resp.JSON201 != nil {
+				_, err = fmt.Fprintf(out, "Chat created: id=%s\n", resp.JSON201.Id)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "chat title")
+	_ = c.MarkFlagRequired("title")
+	return c
+}
+
+// NewChatsUpdateCmd returns the "chats update" command.
+func NewChatsUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title string
+	c := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a group chat",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			body := client.GroupChatControllerUpdateJSONRequestBody{}
+			if cmd.Flags().Changed("title") {
+				body.Title = &title
+			}
+			resp, err := api.GroupChatControllerUpdateWithResponse(context.Background(), id, body)
+			if err != nil {
+				return fmt.Errorf("update chat: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update chat: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			_, err = fmt.Fprintf(out, "Chat updated: id=%s\n", id)
+			return err
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "chat title")
+	return c
+}
+
 // NewChatGetCmd returns the "chats get" command.
 func NewChatGetCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	return &cobra.Command{
@@ -186,6 +265,46 @@ func NewChatsMessagesSendCmd(resolvePath func() (string, error), outputJSON func
 	return c
 }
 
+// NewChatsMessagesUpdateCmd returns the "chats messages update" command.
+func NewChatsMessagesUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var label string
+	c := &cobra.Command{
+		Use:   "update [chat-id] [message-id]",
+		Short: "Update a chat message",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			chatID := args[0]
+			messageID, err := strconv.ParseFloat(args[1], 32)
+			if err != nil {
+				return fmt.Errorf("message-id must be a number: %w", err)
+			}
+			body := client.ChatMessageControllerUpdateJSONRequestBody{}
+			if cmd.Flags().Changed("label") {
+				body.Label = &label
+			}
+			resp, err := api.ChatMessageControllerUpdateWithResponse(context.Background(), chatID, float32(messageID), body)
+			if err != nil {
+				return fmt.Errorf("update message: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update message: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			_, err = fmt.Fprintf(out, "Message updated\n")
+			return err
+		},
+	}
+	c.Flags().StringVar(&label, "label", "", "message label")
+	return c
+}
+
 // NewChatsCmd returns the "chats" parent command.
 func NewChatsCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	c := &cobra.Command{
@@ -194,9 +313,12 @@ func NewChatsCmd(resolvePath func() (string, error), outputJSON func() bool) *co
 	}
 	c.AddCommand(NewChatsListCmd(resolvePath, outputJSON))
 	c.AddCommand(NewChatGetCmd(resolvePath, outputJSON))
+	c.AddCommand(NewChatsCreateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewChatsUpdateCmd(resolvePath, outputJSON))
 	msgs := &cobra.Command{Use: "messages", Short: "Chat messages"}
 	msgs.AddCommand(NewChatsMessagesListCmd(resolvePath, outputJSON))
 	msgs.AddCommand(NewChatsMessagesSendCmd(resolvePath, outputJSON))
+	msgs.AddCommand(NewChatsMessagesUpdateCmd(resolvePath, outputJSON))
 	c.AddCommand(msgs)
 	return c
 }

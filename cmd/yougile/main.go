@@ -1,9 +1,13 @@
 package main
 
-import "os"
+import (
+	"os"
+
+	"github.com/angolovin/yougile-cli/internal/errors"
+)
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
+		os.Exit(errors.ExitCodeError)
 	}
 }

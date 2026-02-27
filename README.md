@@ -57,15 +57,15 @@ yougile auth keys delete <key>
 - `yougile config show` — show config (api_key masked in human output)
 - `yougile company get` — current company details
 - **users:** `users list` / `users get <id>` / `users create --email … [--admin]` / `users update <id> [--admin]` / `users delete <id>`
-- **projects:** `projects list` / `projects get <id>` / `projects create --title "…"` / `projects update <id> [--title "…"]`
+- **projects:** `projects list` / `projects get <id>` / `projects create --title "…"` / `projects update <id> [--title "…"]`; **roles:** `projects roles list --project-id <id>` / `projects roles get --project-id <id> <role-id>` / `projects roles create --project-id <id> --name "…"` / `projects roles update --project-id <id> <role-id> [--name "…"]` / `projects roles delete --project-id <id> <role-id>`
 - **boards:** `boards list` / `boards get <id>` / `boards create --title "…" --project-id <id>` / `boards update <id> [--title "…"]`
 - **columns:** `columns list` / `columns get <id>` / `columns create --title "…" --board-id <id>` / `columns update <id> [--title "…"]`
 - **tasks:** `tasks list` / `tasks get <id>` / `tasks create --title "…" [--column-id <id>]` / `tasks update <id> [--title "…"]` / `tasks chat-subscribers get <task-id>` / `tasks chat-subscribers update <task-id> --user-ids "id1,id2"`
 - **departments:** `departments list` / `departments get <id>` / `departments create --title "…" [--parent-id <id>]` / `departments update <id> [--title "…"]`
 - **webhooks:** `webhooks list` / `webhooks create --event "…" --url "…"`
 - `yougile files upload <path>`
-- **chats:** `chats list` (--limit, --offset, --title), `chats get <id>`, `chats messages list <chat-id>`, `chats messages send <chat-id> --text "…"`
-- **stickers:** `stickers string list` / `stickers string get <id>`, `stickers sprint list` / `stickers sprint get <id>` (--include-deleted)
+- **chats:** `chats list` / `chats get <id>` / `chats create --title "…"` / `chats update <id> [--title "…"]`; **messages:** `chats messages list <chat-id>`, `chats messages send <chat-id> --text "…"`, `chats messages update <chat-id> <message-id> [--label "…"]`
+- **stickers:** `stickers string list` / `stickers string get <id>` / `stickers string create --name "…"` / `stickers string update <id> [--name "…"]`; **string states:** `stickers string states list <sticker-id>` / `stickers string states get <sticker-id> <state-id>` / `stickers string states create <sticker-id> --name "…"` / `stickers string states update <sticker-id> <state-id> [--name "…"]`; `stickers sprint list` / `stickers sprint get <id>` / `stickers sprint create --name "…"` / `stickers sprint update <id> [--name "…"]`; **sprint states:** `stickers sprint states list <sticker-id>` / `stickers sprint states get <sticker-id> <state-id>` / `stickers sprint states create <sticker-id> --name "…"` / `stickers sprint states update <sticker-id> <state-id> [--name "…"]` (--include-deleted for list)
 - **crm:** `crm contact-persons create --title "…" --project-id <id>` (optional: --email, --phone, --address, --position, --additional-phone), `crm contacts by-external-id --provider <name> --chat-id <id>`
 
 Global flags:
