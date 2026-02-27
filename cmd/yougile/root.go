@@ -22,6 +22,7 @@ func init() {
 
 	rootCmd.AddCommand(cmd.NewConfigCmd(ResolveConfigPath, OutputJSON))
 	rootCmd.AddCommand(cmd.NewAuthCmd(ResolveConfigPath))
+	rootCmd.AddCommand(cmd.NewCompanyCmd(ResolveConfigPath, OutputJSON))
 }
 
 var rootCmd = &cobra.Command{
