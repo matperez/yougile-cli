@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 func NewAPIClient(cfg *config.Config) (*client.ClientWithResponses, error) {
 	baseURL := strings.TrimRight(cfg.BaseURL, "/")
 	if cfg.APIKey == "" {
-		return nil, nil
+		return nil, fmt.Errorf("api_key not set in config")
 	}
 	apiKey := cfg.APIKey
 	opts := []client.ClientOption{
@@ -24,4 +25,22 @@ func NewAPIClient(cfg *config.Config) (*client.ClientWithResponses, error) {
 		}),
 	}
 	return client.NewClientWithResponses(baseURL, opts...)
+}
+
+// loadConfigAndClient loads config from path and creates API client.
+// Returns error if config missing, invalid, or api_key empty.
+func loadConfigAndClient(resolvePath func() (string, error)) (*config.Config, *client.ClientWithResponses, error) {
+	path, err := resolvePath()
+	if err != nil {
+		return nil, nil, fmt.Errorf("resolve config path: %w", err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("load config: %w", err)
+	}
+	api, err := NewAPIClient(cfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create API client: %w", err)
+	}
+	return cfg, api, nil
 }
