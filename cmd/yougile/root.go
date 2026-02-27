@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/angolovin/yougile-cli/internal/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +19,8 @@ var (
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "path to config file (default: ~/.config/yougile-cli/config.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&outputJSON, "json", false, "output as JSON")
+
+	rootCmd.AddCommand(cmd.NewConfigCmd(ResolveConfigPath, OutputJSON))
 }
 
 var rootCmd = &cobra.Command{
