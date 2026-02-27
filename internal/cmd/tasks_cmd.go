@@ -115,9 +115,21 @@ func NewTasksCreateCmd(resolvePath func() (string, error), outputJSON func() boo
 	return c
 }
 
+// parseOptionalBool parses "true"/"false" into *bool. Returns nil for invalid or empty.
+func parseOptionalBool(s string) *bool {
+	switch strings.TrimSpace(strings.ToLower(s)) {
+	case "true", "1":
+		return boolPtr(true)
+	case "false", "0":
+		return boolPtr(false)
+	default:
+		return nil
+	}
+}
+
 // NewTasksUpdateCmd returns the "tasks update" command.
 func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
-	var title, columnID string
+	var title, columnID, description, color, assigned, completedStr, archivedStr, deletedStr string
 	c := &cobra.Command{
 		Use:   "update [id]",
 		Short: "Update a task",
@@ -134,6 +146,40 @@ func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() boo
 			}
 			if cmd.Flags().Changed("column-id") {
 				body.ColumnId = &columnID
+			}
+			if cmd.Flags().Changed("description") {
+				body.Description = &description
+			}
+			if cmd.Flags().Changed("color") {
+				body.Color = &color
+			}
+			if cmd.Flags().Changed("assigned") {
+				parts := strings.Split(assigned, ",")
+				for i := range parts {
+					parts[i] = strings.TrimSpace(parts[i])
+				}
+				body.Assigned = &parts
+			}
+			if cmd.Flags().Changed("completed") {
+				if b := parseOptionalBool(completedStr); b != nil {
+					body.Completed = b
+				} else {
+					return fmt.Errorf("--completed must be true or false")
+				}
+			}
+			if cmd.Flags().Changed("archived") {
+				if b := parseOptionalBool(archivedStr); b != nil {
+					body.Archived = b
+				} else {
+					return fmt.Errorf("--archived must be true or false")
+				}
+			}
+			if cmd.Flags().Changed("deleted") {
+				if b := parseOptionalBool(deletedStr); b != nil {
+					body.Deleted = b
+				} else {
+					return fmt.Errorf("--deleted must be true or false")
+				}
 			}
 			resp, err := api.TaskControllerUpdateWithResponse(context.Background(), id, body)
 			if err != nil {
@@ -152,6 +198,12 @@ func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() boo
 	}
 	c.Flags().StringVar(&title, "title", "", "task title")
 	c.Flags().StringVar(&columnID, "column-id", "", "column ID (move task to another column)")
+	c.Flags().StringVar(&description, "description", "", "task description")
+	c.Flags().StringVar(&color, "color", "", "card color: task-primary, task-gray, task-red, task-pink, task-yellow, task-green, task-turquoise, task-blue, task-violet")
+	c.Flags().StringVar(&assigned, "assigned", "", "comma-separated user IDs to assign")
+	c.Flags().StringVar(&completedStr, "completed", "", "mark completed: true or false")
+	c.Flags().StringVar(&archivedStr, "archived", "", "archive task: true or false")
+	c.Flags().StringVar(&deletedStr, "deleted", "", "soft delete: true or false")
 	return c
 }
 

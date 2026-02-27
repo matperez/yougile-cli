@@ -60,7 +60,7 @@ yougile auth keys delete <key>
 - **projects:** `projects list` / `projects get <id>` / `projects create --title "…"` / `projects update <id> [--title "…"]`; **roles:** `projects roles list --project-id <id>` / `projects roles get --project-id <id> <role-id>` / `projects roles create --project-id <id> --name "…"` / `projects roles update --project-id <id> <role-id> [--name "…"]` / `projects roles delete --project-id <id> <role-id>`
 - **boards:** `boards list` / `boards get <id>` / `boards create --title "…" --project-id <id>` / `boards update <id> [--title "…"]`
 - **columns:** `columns list` / `columns get <id>` / `columns create --title "…" --board-id <id>` / `columns update <id> [--title "…"]`
-- **tasks:** `tasks list` / `tasks get <id>` / `tasks create --title "…" [--column-id <id>]` / `tasks update <id> [--title "…"] [--column-id <id>]` / `tasks chat-subscribers get <task-id>` / `tasks chat-subscribers update <task-id> --user-ids "id1,id2"`
+- **tasks:** `tasks list` / `tasks get <id>` / `tasks create --title "…" [--column-id <id>]` / `tasks update <id>` with optional `--title`, `--column-id`, `--description`, `--color`, `--assigned <id1,id2>`, `--completed true|false`, `--archived true|false`, `--deleted true|false` / `tasks chat-subscribers get <task-id>` / `tasks chat-subscribers update <task-id> --user-ids "id1,id2"`
 - **departments:** `departments list` / `departments get <id>` / `departments create --title "…" [--parent-id <id>]` / `departments update <id> [--title "…"]`
 - **webhooks:** `webhooks list` / `webhooks create --event "…" --url "…"`
 - `yougile files upload <path>`
