@@ -1,10 +1,15 @@
-.PHONY: build test lint generate generate-check
+.PHONY: build test lint generate generate-check install
 
 BINARY := yougile
 CMD_PATH := ./cmd/yougile
+PREFIX ?= /usr/local
 
 build:
 	go build -o bin/$(BINARY) $(CMD_PATH)
+
+install: build
+	install -d $(PREFIX)/bin
+	install -m 755 bin/$(BINARY) $(PREFIX)/bin/$(BINARY)
 
 test:
 	go test ./...
