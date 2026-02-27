@@ -21,6 +21,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&outputJSON, "json", false, "output as JSON")
 
 	rootCmd.AddCommand(cmd.NewConfigCmd(ResolveConfigPath, OutputJSON))
+	rootCmd.AddCommand(cmd.NewAuthCmd(ResolveConfigPath))
 }
 
 var rootCmd = &cobra.Command{

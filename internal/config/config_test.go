@@ -36,6 +36,25 @@ api_key: "test-key-123"
 	}
 }
 
+func TestSave_CreatesDirAndWritesConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sub", "config.yaml")
+	cfg := &Config{BaseURL: "https://x.com", APIKey: "saved-key"}
+
+	err := Save(path, cfg)
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load after Save: %v", err)
+	}
+	if loaded.BaseURL != cfg.BaseURL || loaded.APIKey != cfg.APIKey {
+		t.Errorf("loaded = %+v, want %+v", loaded, cfg)
+	}
+}
+
 func TestLoad_EmptyBaseURL_DefaultsToProduction(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
