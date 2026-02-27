@@ -13,4 +13,4 @@ lint:
 	golangci-lint run ./...
 
 generate:
-	@echo "run codegen"
+	oapi-codegen -package client -generate types,client -o pkg/client/api.gen.go docs/api.json

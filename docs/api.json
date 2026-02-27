@@ -408,7 +408,7 @@
         ]
       }
     },
-    "/api-v2/companies*": {
+    "/api-v2/companies": {
       "get": {
         "operationId": "CompanyController_get",
         "summary": "Получить детали",
@@ -496,8 +496,7 @@
                     "type": "string",
                     "format": "binary"
                   }
-                },
-                "$ref": "#/components/schemas/"
+                }
               }
             }
           }
@@ -7167,7 +7166,7 @@
             "description": "Название фильтра. Возможные значения: location, title, chat_message",
             "type": "array",
             "items": {
-              "type": "location"
+              "type": "string"
             }
           },
           "value": {
