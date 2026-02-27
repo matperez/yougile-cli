@@ -174,6 +174,94 @@ func NewAuthKeysListCmd(resolvePath func() (string, error), outputJSON func() bo
 	return c
 }
 
+// NewAuthKeysCreateCmd returns the "auth keys create" command.
+func NewAuthKeysCreateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var email, password, companyID string
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create an API key (requires email, password, company-id)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if email == "" || password == "" || companyID == "" {
+				return fmt.Errorf("email, password and company-id are required")
+			}
+			path, err := resolvePath()
+			if err != nil {
+				return err
+			}
+			cfg, err := config.Load(path)
+			if err != nil {
+				return fmt.Errorf("load config: %w", err)
+			}
+			api, err := client.NewClientWithResponses(cfg.BaseURL)
+			if err != nil {
+				return fmt.Errorf("create client: %w", err)
+			}
+			body := client.AuthKeyControllerCreateJSONRequestBody{
+				Login:     email,
+				Password:  password,
+				CompanyId: companyID,
+			}
+			resp, err := api.AuthKeyControllerCreateWithResponse(context.Background(), body)
+			if err != nil {
+				return fmt.Errorf("create key: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 201 {
+				return fmt.Errorf("create key: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON201 != nil {
+				return output.PrintJSON(out, resp.JSON201)
+			}
+			if resp.JSON201 != nil {
+				_, err = fmt.Fprintf(out, "API key created: %s\n", resp.JSON201.Key)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().StringVar(&email, "email", "", "account email")
+	c.Flags().StringVar(&password, "password", "", "account password")
+	c.Flags().StringVar(&companyID, "company-id", "", "company ID")
+	_ = c.MarkFlagRequired("email")
+	_ = c.MarkFlagRequired("password")
+	_ = c.MarkFlagRequired("company-id")
+	return c
+}
+
+// NewAuthKeysDeleteCmd returns the "auth keys delete" command.
+func NewAuthKeysDeleteCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete [key]",
+		Short: "Delete an API key by key value",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path, err := resolvePath()
+			if err != nil {
+				return err
+			}
+			cfg, err := config.Load(path)
+			if err != nil {
+				return fmt.Errorf("load config: %w", err)
+			}
+			api, err := client.NewClientWithResponses(cfg.BaseURL)
+			if err != nil {
+				return fmt.Errorf("create client: %w", err)
+			}
+			key := args[0]
+			resp, err := api.AuthKeyControllerDeleteWithResponse(context.Background(), key)
+			if err != nil {
+				return fmt.Errorf("delete key: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("delete key: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			_, err = fmt.Fprintf(out, "API key deleted\n")
+			return err
+		},
+	}
+}
+
 // NewAuthKeysCmd returns the "auth keys" parent command.
 func NewAuthKeysCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	c := &cobra.Command{
@@ -181,6 +269,8 @@ func NewAuthKeysCmd(resolvePath func() (string, error), outputJSON func() bool) 
 		Short: "Manage API keys",
 	}
 	c.AddCommand(NewAuthKeysListCmd(resolvePath, outputJSON))
+	c.AddCommand(NewAuthKeysCreateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewAuthKeysDeleteCmd(resolvePath, outputJSON))
 	return c
 }
 

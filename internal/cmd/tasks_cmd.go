@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/angolovin/yougile-cli/internal/output"
 	"github.com/angolovin/yougile-cli/pkg/client"
@@ -72,6 +73,157 @@ func NewTasksListCmd(resolvePath func() (string, error), outputJSON func() bool)
 	return c
 }
 
+// NewTasksCreateCmd returns the "tasks create" command.
+func NewTasksCreateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title, columnID string
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create a task",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if title == "" {
+				return fmt.Errorf("title is required (--title)")
+			}
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			body := client.TaskControllerCreateJSONRequestBody{Title: title}
+			if columnID != "" {
+				body.ColumnId = &columnID
+			}
+			resp, err := api.TaskControllerCreateWithResponse(context.Background(), body)
+			if err != nil {
+				return fmt.Errorf("create task: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 201 {
+				return fmt.Errorf("create task: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON201 != nil {
+				return output.PrintJSON(out, resp.JSON201)
+			}
+			if resp.JSON201 != nil {
+				_, err = fmt.Fprintf(out, "Task created: id=%s\n", resp.JSON201.Id)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "task title")
+	c.Flags().StringVar(&columnID, "column-id", "", "column ID (optional)")
+	_ = c.MarkFlagRequired("title")
+	return c
+}
+
+// NewTasksUpdateCmd returns the "tasks update" command.
+func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title string
+	c := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a task",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			body := client.TaskControllerUpdateJSONRequestBody{}
+			if cmd.Flags().Changed("title") {
+				body.Title = &title
+			}
+			resp, err := api.TaskControllerUpdateWithResponse(context.Background(), id, body)
+			if err != nil {
+				return fmt.Errorf("update task: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update task: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			_, err = fmt.Fprintf(out, "Task updated: id=%s\n", id)
+			return err
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "task title")
+	return c
+}
+
+// NewTasksChatSubscribersGetCmd returns the "tasks chat-subscribers get" command.
+func NewTasksChatSubscribersGetCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	return &cobra.Command{
+		Use:   "get [task-id]",
+		Short: "Get task chat subscribers",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			resp, err := api.TaskControllerGetChatSubscribersWithResponse(context.Background(), id)
+			if err != nil {
+				return fmt.Errorf("get chat subscribers: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("get chat subscribers: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			if resp.JSON200 != nil {
+				for _, uid := range *resp.JSON200 {
+					if _, err := fmt.Fprintln(out, uid); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
+	}
+}
+
+// NewTasksChatSubscribersUpdateCmd returns the "tasks chat-subscribers update" command.
+func NewTasksChatSubscribersUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var userIDs string
+	c := &cobra.Command{
+		Use:   "update [task-id]",
+		Short: "Update task chat subscribers",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if userIDs == "" {
+				return fmt.Errorf("user-ids is required (--user-ids id1,id2,...)")
+			}
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			parts := strings.Split(userIDs, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			body := client.TaskControllerUpdateChatSubscribersJSONRequestBody{Content: &parts}
+			resp, err := api.TaskControllerUpdateChatSubscribersWithResponse(context.Background(), id, body)
+			if err != nil {
+				return fmt.Errorf("update chat subscribers: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update chat subscribers: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			_, err = fmt.Fprintf(out, "Chat subscribers updated for task %s\n", id)
+			return err
+		},
+	}
+	c.Flags().StringVar(&userIDs, "user-ids", "", "comma-separated list of user IDs")
+	_ = c.MarkFlagRequired("user-ids")
+	return c
+}
+
 // NewTaskGetCmd returns the "tasks get" command.
 func NewTaskGetCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	return &cobra.Command{
@@ -115,5 +267,11 @@ func NewTasksCmd(resolvePath func() (string, error), outputJSON func() bool) *co
 	}
 	c.AddCommand(NewTasksListCmd(resolvePath, outputJSON))
 	c.AddCommand(NewTaskGetCmd(resolvePath, outputJSON))
+	c.AddCommand(NewTasksCreateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewTasksUpdateCmd(resolvePath, outputJSON))
+	chatSubs := &cobra.Command{Use: "chat-subscribers", Short: "Task chat subscribers"}
+	chatSubs.AddCommand(NewTasksChatSubscribersGetCmd(resolvePath, outputJSON))
+	chatSubs.AddCommand(NewTasksChatSubscribersUpdateCmd(resolvePath, outputJSON))
+	c.AddCommand(chatSubs)
 	return c
 }

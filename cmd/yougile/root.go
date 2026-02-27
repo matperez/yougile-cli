@@ -31,6 +31,9 @@ func init() {
 	rootCmd.AddCommand(cmd.NewDepartmentsCmd(ResolveConfigPath, OutputJSON))
 	rootCmd.AddCommand(cmd.NewWebhooksCmd(ResolveConfigPath, OutputJSON))
 	rootCmd.AddCommand(cmd.NewFilesCmd(ResolveConfigPath, OutputJSON))
+	rootCmd.AddCommand(cmd.NewChatsCmd(ResolveConfigPath, OutputJSON))
+	rootCmd.AddCommand(cmd.NewStickersCmd(ResolveConfigPath, OutputJSON))
+	rootCmd.AddCommand(cmd.NewCrmCmd(ResolveConfigPath, OutputJSON))
 }
 
 var rootCmd = &cobra.Command{

@@ -68,6 +68,82 @@ func NewColumnsListCmd(resolvePath func() (string, error), outputJSON func() boo
 	return c
 }
 
+// NewColumnsCreateCmd returns the "columns create" command.
+func NewColumnsCreateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title, boardID string
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create a column",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if title == "" || boardID == "" {
+				return fmt.Errorf("title and board-id are required")
+			}
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			body := client.ColumnControllerCreateJSONRequestBody{Title: title, BoardId: boardID}
+			resp, err := api.ColumnControllerCreateWithResponse(context.Background(), body)
+			if err != nil {
+				return fmt.Errorf("create column: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 201 {
+				return fmt.Errorf("create column: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON201 != nil {
+				return output.PrintJSON(out, resp.JSON201)
+			}
+			if resp.JSON201 != nil {
+				_, err = fmt.Fprintf(out, "Column created: id=%s\n", resp.JSON201.Id)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "column title")
+	c.Flags().StringVar(&boardID, "board-id", "", "board ID")
+	_ = c.MarkFlagRequired("title")
+	_ = c.MarkFlagRequired("board-id")
+	return c
+}
+
+// NewColumnsUpdateCmd returns the "columns update" command.
+func NewColumnsUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title string
+	c := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a column",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			body := client.ColumnControllerUpdateJSONRequestBody{}
+			if cmd.Flags().Changed("title") {
+				body.Title = &title
+			}
+			resp, err := api.ColumnControllerUpdateWithResponse(context.Background(), id, body)
+			if err != nil {
+				return fmt.Errorf("update column: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update column: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			_, err = fmt.Fprintf(out, "Column updated: id=%s\n", id)
+			return err
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "column title")
+	return c
+}
+
 // NewColumnGetCmd returns the "columns get" command.
 func NewColumnGetCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	return &cobra.Command{
@@ -111,5 +187,7 @@ func NewColumnsCmd(resolvePath func() (string, error), outputJSON func() bool) *
 	}
 	c.AddCommand(NewColumnsListCmd(resolvePath, outputJSON))
 	c.AddCommand(NewColumnGetCmd(resolvePath, outputJSON))
+	c.AddCommand(NewColumnsCreateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewColumnsUpdateCmd(resolvePath, outputJSON))
 	return c
 }

@@ -64,6 +64,80 @@ func NewProjectsListCmd(resolvePath func() (string, error), outputJSON func() bo
 	return c
 }
 
+// NewProjectsCreateCmd returns the "projects create" command.
+func NewProjectsCreateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title string
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create a project",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if title == "" {
+				return fmt.Errorf("title is required (--title)")
+			}
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			body := client.ProjectControllerCreateJSONRequestBody{Title: title}
+			resp, err := api.ProjectControllerCreateWithResponse(context.Background(), body)
+			if err != nil {
+				return fmt.Errorf("create project: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 201 {
+				return fmt.Errorf("create project: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON201 != nil {
+				return output.PrintJSON(out, resp.JSON201)
+			}
+			if resp.JSON201 != nil {
+				_, err = fmt.Fprintf(out, "Project created: id=%s\n", resp.JSON201.Id)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "project title")
+	_ = c.MarkFlagRequired("title")
+	return c
+}
+
+// NewProjectsUpdateCmd returns the "projects update" command.
+func NewProjectsUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var title string
+	c := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a project",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			body := client.ProjectControllerUpdateJSONRequestBody{}
+			if cmd.Flags().Changed("title") {
+				body.Title = &title
+			}
+			resp, err := api.ProjectControllerUpdateWithResponse(context.Background(), id, body)
+			if err != nil {
+				return fmt.Errorf("update project: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update project: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			_, err = fmt.Fprintf(out, "Project updated: id=%s\n", id)
+			return err
+		},
+	}
+	c.Flags().StringVar(&title, "title", "", "project title")
+	return c
+}
+
 // NewProjectGetCmd returns the "projects get" command.
 func NewProjectGetCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	return &cobra.Command{
@@ -107,5 +181,7 @@ func NewProjectsCmd(resolvePath func() (string, error), outputJSON func() bool) 
 	}
 	c.AddCommand(NewProjectsListCmd(resolvePath, outputJSON))
 	c.AddCommand(NewProjectGetCmd(resolvePath, outputJSON))
+	c.AddCommand(NewProjectsCreateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewProjectsUpdateCmd(resolvePath, outputJSON))
 	return c
 }

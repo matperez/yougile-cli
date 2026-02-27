@@ -12,6 +12,7 @@ import (
 
 func float32Ptr(v float32) *float32 { return &v }
 func strPtr(s string) *string       { return &s }
+func boolPtr(b bool) *bool           { return &b }
 
 // NewUsersListCmd returns the "users list" command.
 func NewUsersListCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
@@ -75,6 +76,117 @@ func NewUsersListCmd(resolvePath func() (string, error), outputJSON func() bool)
 	return c
 }
 
+// NewUsersCreateCmd returns the "users create" command.
+func NewUsersCreateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var email string
+	var isAdmin bool
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create a user",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if email == "" {
+				return fmt.Errorf("email is required (--email)")
+			}
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			body := client.UserControllerCreateJSONRequestBody{
+				Email:   email,
+				IsAdmin: &isAdmin,
+			}
+			resp, err := api.UserControllerCreateWithResponse(context.Background(), body)
+			if err != nil {
+				return fmt.Errorf("create user: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 201 {
+				return fmt.Errorf("create user: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON201 != nil {
+				return output.PrintJSON(out, resp.JSON201)
+			}
+			if resp.JSON201 != nil {
+				_, err = fmt.Fprintf(out, "User created: id=%s\n", resp.JSON201.Id)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().StringVar(&email, "email", "", "user email")
+	c.Flags().BoolVar(&isAdmin, "admin", false, "grant admin rights")
+	_ = c.MarkFlagRequired("email")
+	return c
+}
+
+// NewUsersUpdateCmd returns the "users update" command.
+func NewUsersUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	var isAdmin bool
+	c := &cobra.Command{
+		Use:   "update [id]",
+		Short: "Update a user",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			body := client.UserControllerUpdateJSONRequestBody{}
+			if cmd.Flags().Changed("admin") {
+				body.IsAdmin = &isAdmin
+			}
+			resp, err := api.UserControllerUpdateWithResponse(context.Background(), id, body)
+			if err != nil {
+				return fmt.Errorf("update user: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("update user: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			if resp.JSON200 != nil {
+				_, err = fmt.Fprintf(out, "User updated: id=%s\n", id)
+				return err
+			}
+			return nil
+		},
+	}
+	c.Flags().BoolVar(&isAdmin, "admin", false, "set admin rights")
+	return c
+}
+
+// NewUsersDeleteCmd returns the "users delete" command.
+func NewUsersDeleteCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete [id]",
+		Short: "Delete a user",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, api, err := loadConfigAndClient(resolvePath)
+			if err != nil {
+				return err
+			}
+			id := args[0]
+			resp, err := api.UserControllerDeleteWithResponse(context.Background(), id)
+			if err != nil {
+				return fmt.Errorf("delete user: %w", err)
+			}
+			if resp.HTTPResponse.StatusCode != 200 {
+				return fmt.Errorf("delete user: HTTP %s", resp.HTTPResponse.Status)
+			}
+			out := cmd.OutOrStdout()
+			if outputJSON() && resp.JSON200 != nil {
+				return output.PrintJSON(out, resp.JSON200)
+			}
+			_, err = fmt.Fprintf(out, "User deleted: id=%s\n", id)
+			return err
+		},
+	}
+}
+
 // NewUserGetCmd returns the "users get" command.
 func NewUserGetCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
 	return &cobra.Command{
@@ -118,5 +230,8 @@ func NewUsersCmd(resolvePath func() (string, error), outputJSON func() bool) *co
 	}
 	c.AddCommand(NewUsersListCmd(resolvePath, outputJSON))
 	c.AddCommand(NewUserGetCmd(resolvePath, outputJSON))
+	c.AddCommand(NewUsersCreateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewUsersUpdateCmd(resolvePath, outputJSON))
+	c.AddCommand(NewUsersDeleteCmd(resolvePath, outputJSON))
 	return c
 }
