@@ -117,7 +117,7 @@ func NewTasksCreateCmd(resolvePath func() (string, error), outputJSON func() boo
 
 // NewTasksUpdateCmd returns the "tasks update" command.
 func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() bool) *cobra.Command {
-	var title string
+	var title, columnID string
 	c := &cobra.Command{
 		Use:   "update [id]",
 		Short: "Update a task",
@@ -131,6 +131,9 @@ func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() boo
 			body := client.TaskControllerUpdateJSONRequestBody{}
 			if cmd.Flags().Changed("title") {
 				body.Title = &title
+			}
+			if cmd.Flags().Changed("column-id") {
+				body.ColumnId = &columnID
 			}
 			resp, err := api.TaskControllerUpdateWithResponse(context.Background(), id, body)
 			if err != nil {
@@ -148,6 +151,7 @@ func NewTasksUpdateCmd(resolvePath func() (string, error), outputJSON func() boo
 		},
 	}
 	c.Flags().StringVar(&title, "title", "", "task title")
+	c.Flags().StringVar(&columnID, "column-id", "", "column ID (move task to another column)")
 	return c
 }
 
