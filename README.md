@@ -55,6 +55,8 @@ yougile auth keys list --email your@email.com --password yourpassword
 - `yougile columns list` / `columns get <id>`
 - `yougile tasks list` / `tasks get <id>`
 - `yougile departments list` / `departments get <id>`
+- `yougile webhooks list`
+- `yougile files upload <path>`
 
 Global flags:
 

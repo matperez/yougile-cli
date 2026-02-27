@@ -29,6 +29,8 @@ func init() {
 	rootCmd.AddCommand(cmd.NewColumnsCmd(ResolveConfigPath, OutputJSON))
 	rootCmd.AddCommand(cmd.NewTasksCmd(ResolveConfigPath, OutputJSON))
 	rootCmd.AddCommand(cmd.NewDepartmentsCmd(ResolveConfigPath, OutputJSON))
+	rootCmd.AddCommand(cmd.NewWebhooksCmd(ResolveConfigPath, OutputJSON))
+	rootCmd.AddCommand(cmd.NewFilesCmd(ResolveConfigPath, OutputJSON))
 }
 
 var rootCmd = &cobra.Command{
