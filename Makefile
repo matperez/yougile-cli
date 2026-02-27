@@ -2,7 +2,8 @@
 
 BINARY := yougile
 CMD_PATH := ./cmd/yougile
-PREFIX ?= /usr/local
+# Default: user install (no sudo). System-wide: sudo make install PREFIX=/usr/local
+PREFIX ?= $(HOME)/.local
 
 build:
 	go build -o bin/$(BINARY) $(CMD_PATH)
