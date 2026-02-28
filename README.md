@@ -88,3 +88,7 @@ go build ./...
 make lint
 make test
 ```
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
